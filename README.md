@@ -7,10 +7,11 @@ The workflow below has a critical flaw:
 2. Sync them to iCloud
 3. Periodically off-load them to your pc for curating and archival
 
-Curated media are not available on your iPhone or iPad. Instead these devices are stuck with the raw unfiltered media.
+**Curated media are not available on your iPhone or iPad. Instead these devices are stuck with the raw unfiltered media.**
 
 This tool creates a way to reingest curated and archived media back into iCloud so they are available on your devices again.
 As a result the following steps are added to the workflow:
+
 4. Define a transition date (earlier than the latest offloading cutoff date)
 5. Remove all media from iCloud that is older than the transition date
 6. Reingest curated and archived media back into iCloud up to the transition date
@@ -20,11 +21,21 @@ Visually that looks like this:
 
 ```
 |<-- Curated and archived media -->|<-- Raw unfiltered media -->|
-|<------- Reingested into iCloud ------->|<-- Still in iCloud -->|
+```
+Subsequent offloading and curating can continue as normal.
+When the next reingestion is done, the transition date is moved forward in time.
+
+```
+|              25    26    27    28                |              
+|<-- Curate  -->|<-- Raw media -->|
+|<-- Curate       -->|<-- Raw media -->|
+|<-- Curate             -->|<-- Raw media -->|
+|<-- Curate                   -->|<-- Raw media -->|
 ```
 
+
 ## Critical Notes
-Media are reingested with their original creation dates so they appear in the correct chronological order in iCloud.
+* Media are reingested with their original creation dates so they appear in the correct chronological order in iCloud.
 If the correct date can't be found in the metadata, or there are reasons to believe the file modified date is wrong, the media file is skipped.
 
 ## How to install this tool
@@ -33,9 +44,25 @@ poetry install --no-root
 ```
 ## How to use this tool
 1. Generate a report of the picture media
+```python
+# configure the python file first!
+python src\evaluate_image_files.py
+```
 2. Process the report so images to reingest are stored in a new flat location
+```python
+# configure the python file first!
+python src\process_image_files.py
+```
 3. Generate a report of the video media
+```python
+# configure the python file first!
+python src\evaluate_video_files.py
+```
 4. Process the report so videos to reingest are stored in a new flat location
+```python
+# configure the python file first!
+python src\process_video_files.py
+```
 5. Reingest the curated media into iCloud via an intermediary device using PhotoSync
 
 ## Author
