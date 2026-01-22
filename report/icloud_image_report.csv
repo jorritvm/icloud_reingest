@@ -1,0 +1,4 @@
+file@action@reason
+C:\Users\jorrit\Desktop\prepare_for_icloud_reingestion\data\2018\pictures\date_taken_and_mtime_but_wrong_year_folder.JPG@move@date taken available
+C:\Users\jorrit\Desktop\prepare_for_icloud_reingestion\data\2018\pictures\no_date_taken_and_wrong_mtime.JPG@skip@date modified year mismatch
+C:\Users\jorrit\Desktop\prepare_for_icloud_reingestion\data\2018\pictures\no_date_taken_but_correct_mtime.JPG@move@date modified year correct
