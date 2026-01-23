@@ -60,8 +60,10 @@ ROOT_PICTURES_FOLDER = "data/2018/pictures"
 ONLY_HANDLE_THESE_IMAGE_EXTENSIONS = ["jpg", "jpeg"]
 # Keywords to exclude files (e.g., specific albums, trash folders)
 SKIPLIST_PARTIAL_MATCH = ["GOEF", "Elia", "BBM", "Trash", "small"]
+# Folder path for output CSV report
+OUTPUT_CSV_FOLDER_PATH = "report"
 # CSV file name for output report
-OUTPUT_CSV_FILE = "icloud_image_report.csv"
+OUTPUT_CSV_FILE_NAME = "icloud_image_report.csv"
 
 
 # Pandas display settings
@@ -128,4 +130,8 @@ if __name__ == "__main__":
     results = crawl_and_evaluate(ROOT_PICTURES_FOLDER, image_exts, SKIPLIST_PARTIAL_MATCH)
     df = pd.DataFrame(results)
     print(df)
-    df.to_csv(OUTPUT_CSV_FILE, sep='@', index=False)
+
+    # Ensure output folder exists
+    os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
+    OUTPUT_CSV_FILE_PATH = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
+    df.to_csv(OUTPUT_CSV_FILE_PATH, sep='@', index=False)

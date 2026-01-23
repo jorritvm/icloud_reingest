@@ -7,7 +7,11 @@ import subprocess
 
 FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\bin\ffmpeg.exe"
 EXIFTOOL_BINARY_PATH = r"C:\Program Files\exiftool\exiftool.exe"  # You may need to install exiftool
-OUTPUT_CSV_FILE = "icloud_video_report.csv"
+INPUT_CSV_FOLDER_PATH = "report"
+INPUT_CSV_FILE_NAME = "icloud_video_report.csv"
+PROCESSED_VIDEO_FOLDER_PATH = "data/processed_videos"
+OUTPUT_CSV_FOLDER_PATH = "report"
+OUTPUT_CSV_FILE_NAME = "icloud_video_report_processed.csv"
 
 
 def convert_video(src, dst, creation_time, video_codec_needed, audio_codec_needed, audio_channels, apple_metadata=None):
@@ -99,29 +103,45 @@ def convert_video(src, dst, creation_time, video_codec_needed, audio_codec_neede
 
 
 def process_actions_from_csv(csv_path):
+    # ensure output folder exists
+    os.makedirs(PROCESSED_VIDEO_FOLDER_PATH, exist_ok=True)
+
     df = pd.read_csv(csv_path, sep='@', dtype=str)
-    for _, row in df.iterrows():
+    df['derived_file'] = None  # Add new column for output path
+    for idx, row in df.iterrows():
         action = row.get('action')
         if action == 'skip':
             continue
 
-        file_path = row.get('file')
-        base, extn = os.path.splitext(file_path)
-        out_path = base + '_ok.mov'
         creation_time = row.get('creation_time')
         apple_metadata = json.loads(row['apple_metadata']) if row.get('apple_metadata') else None
         val = row.get('audio_channels')
         audio_channels = int(float(val)) if pd.notna(val) else 2
-
-        # Read codec conversion needs from CSV
         video_codec_needed = bool(int(float(row.get('video_codec_needed', '1'))))
         audio_codec_needed = bool(int(float(row.get('audio_codec_needed', '1'))))
+
+        # Establish an output file path with a unique prefix from creation_time
+        prefix = "unknown_"
+        if creation_time and pd.notna(creation_time):
+            try:
+                dt = pd.to_datetime(creation_time)
+                prefix = dt.strftime('%Y%m%d_%H%M%S-')
+            except Exception:
+                try:
+                    dt = pd.to_datetime(creation_time[:19])
+                    prefix = dt.strftime('%Y%m%d_%H%M%S-')
+                except Exception:
+                    pass
+        file_path = row.get('file')
+        file_name = os.path.basename(file_path)
+        unique_file_name = f"{prefix}{file_name}"
+        out_path = os.path.join(PROCESSED_VIDEO_FOLDER_PATH, unique_file_name)
+        df.at[idx, 'derived_file'] = out_path  # Store output path in new column
 
         if action == 'move':
             shutil.copy2(file_path, out_path)
             if creation_time and pd.notna(creation_time):
                 try:
-                    dt = None
                     try:
                         dt = pd.to_datetime(creation_time)
                     except Exception:
@@ -134,6 +154,14 @@ def process_actions_from_csv(csv_path):
             convert_video(file_path, out_path, creation_time, video_codec_needed, audio_codec_needed, audio_channels, apple_metadata)
         # skip and error do nothing
 
+    return df
+
 if __name__ == '__main__':
-    process_actions_from_csv(OUTPUT_CSV_FILE)
+    input_csv_path = os.path.join(INPUT_CSV_FOLDER_PATH, INPUT_CSV_FILE_NAME)
+    dfp = process_actions_from_csv(input_csv_path)
+
+    # Ensure output folder exists
+    os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
+    output_csv_path = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
+    dfp.to_csv(output_csv_path, sep='@', index=False)
     print("Done.")

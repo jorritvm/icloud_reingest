@@ -81,14 +81,6 @@ The 'reason' field for 'convert' actions indicates which streams need conversion
 - 'convert: container' - Container is not MOV
 - Combined: 'convert: video codec+HDR to SDR+audio codec+container'
 
-Configuration:
--------------
-- ROOT_VIDEO_FOLDER: Starting directory for file crawl
-- ONLY_HANDLE_THESE_VIDEO_EXTENSIONS: File types to process (case-insensitive)
-- SKIPLIST_PARTIAL_MATCH: Keywords to exclude files (e.g., specific albums)
-- FFMPEG_BINARY_PATH: Path to ffmpeg installation for video analysis
-- OUTPUT_CSV_FILE: CSV filename for evaluation report
-
 Example folder structure:
 ------------------------
 data/2018/2018-07-17 Summer Vacation/video_001.mkv
@@ -132,11 +124,18 @@ from src.utils import should_skip_by_partial_match, extract_year_from_path
 
 
 ### CONFIGURATION ###
+# Starting directory for file crawl
 ROOT_VIDEO_FOLDER = "data/2018/videos"
+# File types to process (case-insensitive)
 ONLY_HANDLE_THESE_VIDEO_EXTENSIONS = ["mkv", "mp4", "mov"] # case insensitive
+# Keywords to exclude files (e.g., specific albums)
 SKIPLIST_PARTIAL_MATCH = ["GOEF", "Elia", "BBM", "Trash", "small"]
+# Path to ffmpeg installation for video analysis
 FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\bin\ffmpeg.exe"
-OUTPUT_CSV_FILE = "icloud_video_report.csv"
+# Folder path for output CSV report
+OUTPUT_CSV_FOLDER_PATH = "report"
+# CSV filename for evaluation report
+OUTPUT_CSV_FILE_NAME = "icloud_video_report.csv"
 
 
 # Pandas display settings
@@ -242,7 +241,27 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                 entry['reason'] = 'ffprobe failed'
                 continue
 
-            # Determine if re-encode is needed
+            # Try to get creation time from metadata first, if unavailable, check file mtime against year in path
+            creation_time = get_creation_time_from_metadata(info)
+            if not creation_time:
+                path_year = extract_year_from_path(file_path)
+                if path_year:
+                    mod_time = os.path.getmtime(file_path)
+                    mod_year = datetime.fromtimestamp(mod_time).year
+                    if str(mod_year) == path_year:
+                        # Year matches, use file mtime as creation time and continue with codec checks
+                        creation_time = get_file_mtime_as_iso(file_path)
+                    else:
+                        # Year mismatch - skip this file
+                        entry['action'] = 'skip'
+                        entry['reason'] = 'no metadata creation time and and file modified time mismatch'
+                        continue
+                else:
+                    entry['action'] = 'skip'
+                    entry['reason'] = 'no metadata creation time and no year in path'
+                    continue
+
+            # Determine if re-encode is needed, and for which parts exactly
             video_codec_needed = True
             audio_codec_needed = True
             container_needed = ext != 'mov'
@@ -250,7 +269,6 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
             hdr_to_sdr_needed = False
             video_reason = None
             audio_reason = None
-            container_reason = None
             hdr_reason = None
             for stream in info.get('streams', []):
                 if stream.get('codec_type') == 'video':
@@ -278,29 +296,6 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
             else:
                 container_reason = 'container'
 
-            # Try to get creation time from metadata first
-            creation_time = get_creation_time_from_metadata(info)
-            apple_metadata = extract_apple_metadata(info)
-
-            # If no creation_time in metadata, check file mtime against year in path
-            if not creation_time:
-                path_year = extract_year_from_path(file_path)
-                if path_year:
-                    mod_time = os.path.getmtime(file_path)
-                    mod_year = datetime.fromtimestamp(mod_time).year
-                    if str(mod_year) == path_year:
-                        # Year matches, use file mtime as creation time and continue with codec checks
-                        creation_time = get_file_mtime_as_iso(file_path)
-                    else:
-                        # Year mismatch - skip this file
-                        entry['action'] = 'skip'
-                        entry['reason'] = 'file modified time mismatch'
-                        continue
-                else:
-                    entry['action'] = 'skip'
-                    entry['reason'] = 'no year in path'
-                    continue
-
             # If everything is compatible (video, audio, SDR, MOV), just mark as move
             if not video_codec_needed and not audio_codec_needed and not container_needed and not hdr_to_sdr_needed:
                 entry['action'] = 'move'
@@ -312,7 +307,7 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                 entry['audio_codec_needed'] = 0
                 continue
 
-            # Build reason string
+            # Build reason for converting string
             reasons = []
             if video_codec_needed:
                 if video_reason:
@@ -326,6 +321,9 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                 if container_reason:
                     reasons.append(container_reason)
             reason_str = 'convert: ' + '+'.join(reasons) if reasons else 'convert'
+
+            # Get apple metadata
+            apple_metadata = extract_apple_metadata(info)
 
             entry['action'] = 'convert'
             entry['reason'] = reason_str
@@ -342,4 +340,8 @@ if __name__ == "__main__":
     results = crawl_and_evaluate(ROOT_VIDEO_FOLDER, video_extensions, SKIPLIST_PARTIAL_MATCH)
     df = pd.DataFrame(results)
     print(df)
-    df.to_csv(OUTPUT_CSV_FILE, sep='@', index=False)
+
+    # Ensure output folder exists
+    os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
+    OUTPUT_CSV_FILE_PATH = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
+    df.to_csv(OUTPUT_CSV_FILE_PATH, sep='@', index=False)
