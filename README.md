@@ -56,7 +56,22 @@ If the correct date can't be found in the metadata, or there are reasons to beli
 poetry install --no-root
 ```
 ## How to use this tool?
+### Archive image deduplicaiton
+Remove duplicate images in the archive before reingestion to save iCloud space. Based on pHash algorithm.
+1. Run the deduplication script to find duplicate images in the archive
+```python
+# configure the python file first!
+python src\evaluate_duplicates.py
+```
+2. Evaluate the csv file (use excel). Make manual changes if desired.
+3. Run the script to remove duplicate images from the archive
+```python
+# configure the python file first!
+python src\process_duplicates.py
+```
+
 ### Image processing
+Filter and copy the archive images to reingest into iCloud.
 1. Generate a report of the picture media
 ```python
 # configure the python file first!
@@ -69,6 +84,7 @@ python src\evaluate_image_files.py
 python src\process_image_files.py
 ```
 ### Video procesing
+Filter, convert and copy the archive videos to reingest into iCloud.
 1. Generate a report of the video media
 ```python
 # configure the python file first!

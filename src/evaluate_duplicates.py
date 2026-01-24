@@ -19,9 +19,9 @@ from src.utils import should_skip_by_partial_match
 
 # Configuration
 # Root folder to start crawling for images
-ROOT_PICTURES_FOLDER = "data/with_dupes"
+ROOT_PICTURES_FOLDER = r"D:\pictures" # "data/with_dupes"
 # List of keywords; folders containing any of these will be skipped
-SKIPLIST_PARTIAL_MATCH = ["GOEF", "Elia", "BBM", "Trash", "small", "large"]
+SKIPLIST_PARTIAL_MATCH = ["Trash", "small", "large", "collages", "iphone_import", "LRCatalog"]
 # Size threshold in bytes to separate images into big/small groups (800 KB)
 SIZE_THRESHOLD_BYTES = 800 * 1024  # 800 KB
 # Size for phash calculation (images will be resized to PHASH_SIZE x PHASH_SIZE)
@@ -88,6 +88,7 @@ def crawl_and_evaluate(root_folder, skiplist):
     all_results = []
     for folder_path, dirnames, filenames in os.walk(root_folder):
         if should_skip_by_partial_match(folder_path, skiplist):
+            print(f"Skipping folder: {folder_path}")  # Progress print
             continue
         print(f"Processing folder: {folder_path}")  # Progress print
         # Only process folders with images
@@ -102,7 +103,7 @@ def crawl_and_evaluate(root_folder, skiplist):
 if __name__ == "__main__":
     results = crawl_and_evaluate(ROOT_PICTURES_FOLDER, SKIPLIST_PARTIAL_MATCH)
     df = pd.DataFrame(results)
-    print(df)
+    print(df[df['dupe_type'].str.startswith('dupe')])
 
     # Ensure output folder exists
     os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)

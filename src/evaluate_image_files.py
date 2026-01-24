@@ -55,7 +55,7 @@ from src.utils import should_skip_by_partial_match, extract_year_from_path
 
 ### CONFIGURATION ###
 # Starting directory for file crawl
-ROOT_PICTURES_FOLDER = "data/2018/pictures"
+ROOT_PICTURES_FOLDER = r"D:\pictures\2018" # "data/2018/pictures"
 # File types to process (case-insensitive)
 ONLY_HANDLE_THESE_IMAGE_EXTENSIONS = ["jpg", "jpeg"]
 # Keywords to exclude files (e.g., specific albums, trash folders)
@@ -87,6 +87,8 @@ def get_exif_date_taken(filepath):
 def crawl_and_evaluate(root_folder_path, image_extensions, skiplist):
     results = []
     for folder_path, _, filenames in os.walk(root_folder_path):
+        # Print when entering a new folder
+        print(f"Entering folder: {folder_path}")
         for file_name in filenames:
             file_path = os.path.abspath(os.path.join(folder_path, file_name))
             entry = {'file': file_path}
@@ -104,7 +106,7 @@ def crawl_and_evaluate(root_folder_path, image_extensions, skiplist):
                 continue
 
             date_taken = get_exif_date_taken(file_path)
-            print(f"File: {file_path}, Date Taken: {date_taken}")
+            # print(f"File: {file_path}, Date Taken: {date_taken}")
             if date_taken:
                 entry['action'] = 'move'
                 entry['reason'] = 'date taken available'
