@@ -91,7 +91,7 @@ def crawl_and_evaluate(root_folder_path, image_extensions, skiplist):
         print(f"Entering folder: {folder_path}")
         for file_name in filenames:
             file_path = os.path.abspath(os.path.join(folder_path, file_name))
-            entry = {'file': file_path}
+            entry = {'file': file_path, 'datetime': ''}
             results.append(entry)
 
             ext = os.path.splitext(file_name)[1][1:].lower()
@@ -106,10 +106,10 @@ def crawl_and_evaluate(root_folder_path, image_extensions, skiplist):
                 continue
 
             date_taken = get_exif_date_taken(file_path)
-            # print(f"File: {file_path}, Date Taken: {date_taken}")
             if date_taken:
                 entry['action'] = 'move'
                 entry['reason'] = 'date taken available'
+                entry['datetime'] = date_taken
                 continue
 
             path_year = extract_year_from_path(file_path)
@@ -119,6 +119,7 @@ def crawl_and_evaluate(root_folder_path, image_extensions, skiplist):
                 if str(mod_year) == path_year:
                     entry['action'] = 'move'
                     entry['reason'] = 'date modified year correct'
+                    entry['datetime'] = datetime.fromtimestamp(mod_time).strftime('%Y:%m:%d %H:%M:%S')
                 else:
                     entry['action'] = 'skip'
                     entry['reason'] = 'date modified year mismatch'

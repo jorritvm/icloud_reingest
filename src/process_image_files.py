@@ -11,6 +11,7 @@ The script preserves the original filenames and prints progress to the console.
 import os
 import pandas as pd
 import shutil
+from datetime import datetime
 
 # Configuration
 INPUT_CSV_FOLDER_PATH = "report"
@@ -23,7 +24,7 @@ OUTPUT_CSV_FILE_NAME = "icloud_image_report_processed.csv"
 input_csv_path = os.path.join(INPUT_CSV_FOLDER_PATH, INPUT_CSV_FILE_NAME)
 if not os.path.exists(input_csv_path):
     raise FileNotFoundError(f"Input CSV not found: {input_csv_path}")
-df = pd.read_csv(input_csv_path, sep='@', names=['file', 'action', 'reason'], dtype=str)
+df = pd.read_csv(input_csv_path, sep='@', names=['file', 'datetime', 'action', 'reason'], dtype=str)
 
 # Track processed files
 df['processed'] = ''
@@ -31,12 +32,25 @@ df['processed'] = ''
 # Ensure output folder exists
 os.makedirs(PROCESSED_IMAGE_FOLDER_PATH, exist_ok=True)
 
+# Process each row in the DataFrame
 for idx, row in df.iterrows():
     if row['action'] != 'move':
         continue
     src_path = row['file']
     file_name = os.path.basename(src_path)
-    dst_path = os.path.join(PROCESSED_IMAGE_FOLDER_PATH, file_name)
+    # Get date for prefix from CSV datetime column
+    prefix = "unknown_"
+    csv_datetime = row.get('datetime')
+    if csv_datetime and pd.notna(csv_datetime) and csv_datetime.strip():
+        try:
+            # EXIF format is 'YYYY:MM:DD HH:MM:SS'
+            dt = datetime.strptime(csv_datetime, '%Y:%m:%d %H:%M:%S')
+            prefix = dt.strftime('%Y%m%d_%H%M%S-')
+        except Exception as e:
+            print(f"Warning: Could not parse datetime '{csv_datetime}' for {src_path}: {e}")
+
+    unique_file_name = f"{prefix}{file_name}"
+    dst_path = os.path.join(PROCESSED_IMAGE_FOLDER_PATH, unique_file_name)
     try:
         shutil.copy2(src_path, dst_path)
         df.at[idx, 'processed'] = dst_path
@@ -50,4 +64,3 @@ os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
 output_csv_path = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
 df.to_csv(output_csv_path, sep='@', index=False)
 print(f"Done. Results written to {output_csv_path}")
-
