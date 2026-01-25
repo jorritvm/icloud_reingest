@@ -24,7 +24,7 @@ OUTPUT_CSV_FILE_NAME = "icloud_image_report_processed.csv"
 input_csv_path = os.path.join(INPUT_CSV_FOLDER_PATH, INPUT_CSV_FILE_NAME)
 if not os.path.exists(input_csv_path):
     raise FileNotFoundError(f"Input CSV not found: {input_csv_path}")
-df = pd.read_csv(input_csv_path, sep='@', names=['file', 'datetime', 'action', 'reason'], dtype=str)
+df = pd.read_csv(input_csv_path, sep='@', names=['file', 'datetime', 'action', 'reason'], dtype=str, header=0)
 
 # Track processed files
 df['processed'] = ''
