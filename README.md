@@ -51,6 +51,33 @@ When the next reingestion is done, the transition date is moved forward in time.
 * Media are reingested with their original creation dates so they appear in the correct chronological order in iCloud.
 If the correct date can't be found in the metadata, or there are reasons to believe the file modified date is wrong, the media file is skipped.
 
+## Overal workflow (visual)
+```mermaid
+sequenceDiagram
+    participant Archive as Archive
+    participant Human as Human
+    participant Staging as Staging
+    participant iCloud as iCloud
+
+    Archive ->> Human: evaluate_duplicates.py
+    Human ->> Human: inspect CSV
+    Human ->> Archive: process_duplicates.py
+
+    Archive ->> Human: evaluate_images.py
+    Human ->> Human: inspect CSV
+    Human ->> Staging: process_images.py
+
+    Archive ->> Human: evaluate_videos.py
+    Human ->> Human: inspect CSV
+    Human ->> Staging: process_videoss.py
+
+    Staging ->> iCloud: Upload via photosync
+
+    Human ->> Human: inspect iCloud result
+
+    Staging ->> Archive: Replace archive (improvements only)
+```
+
 ## How to install this tool?
 ```python
 poetry install --no-root

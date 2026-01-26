@@ -117,7 +117,7 @@ Scenario 5 - Old video with wrong file date:
 
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 import json
 from src.utils import should_skip_by_partial_match, extract_year_from_path
@@ -125,7 +125,7 @@ from src.utils import should_skip_by_partial_match, extract_year_from_path
 
 ### CONFIGURATION ###
 # Starting directory for file crawl
-ROOT_VIDEO_FOLDER = "data/2018/videos"
+ROOT_VIDEO_FOLDER = r"data\fix_times\2018\in" #  r"D:\pictures\2018" #
 # File types to process (case-insensitive)
 ONLY_HANDLE_THESE_VIDEO_EXTENSIONS = ["mkv", "mp4", "mov"] # case insensitive
 # Keywords to exclude files (e.g., specific albums)
@@ -166,11 +166,30 @@ def get_creation_time_from_metadata(metadata):
                         return v
     return None
 
+def normalize_datetime_to_utc(dt_string):
+    """Parse various datetime formats and convert to UTC ISO format with Z suffix"""
+    if not dt_string:
+        return None
+    try:
+        # Parse with timezone info using fromisoformat
+        # This handles formats like: 2018-04-27T21:36:38+0200 or 2018-05-05T16:55:07.000000Z
+        dt_with_tz = datetime.fromisoformat(dt_string.replace('Z', '+00:00'))
+
+        # Convert to UTC
+        dt_utc = dt_with_tz.astimezone(timezone.utc)
+
+        # Return as ISO string with Z suffix
+        return dt_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    except Exception as e:
+        print(f"Warning: Could not parse datetime '{dt_string}': {e}")
+        return dt_string  # Return original if parsing fails
+
 def get_file_mtime_as_iso(file_path):
-    """Get file modification time as ISO 8601 string"""
+    """Get file modification time as ISO 8601 string in UTC"""
     if file_path and os.path.exists(file_path):
         mod_time = os.path.getmtime(file_path)
-        return datetime.utcfromtimestamp(mod_time).isoformat() + 'Z'
+        dt = datetime.utcfromtimestamp(mod_time)
+        return dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
     return None
 
 def extract_apple_metadata(metadata):
@@ -219,6 +238,7 @@ def is_hdr_stream(stream):
 def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
     results = []
     for folder_path, _, file_names in os.walk(root_folder_path):
+        print(f"Entering folder: {folder_path}")  # Progress print
         for file_name in file_names:
             file_path = os.path.abspath(os.path.join(folder_path, file_name))
             entry = {'file': file_path}
@@ -244,6 +264,7 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
             # Try to get creation time from metadata first, if unavailable, check file mtime against year in path
             creation_time = get_creation_time_from_metadata(info)
             if not creation_time:
+                print("---- I DID NOT FIND METADATA FOR FILE: " + file_path)
                 path_year = extract_year_from_path(file_path)
                 if path_year:
                     mod_time = os.path.getmtime(file_path)
@@ -260,6 +281,9 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                     entry['action'] = 'skip'
                     entry['reason'] = 'no metadata creation time and no year in path'
                     continue
+
+            # Normalize the datetime to UTC format (handles both metadata and mtime)
+            creation_time = normalize_datetime_to_utc(creation_time)
 
             # Determine if re-encode is needed, and for which parts exactly
             video_codec_needed = True

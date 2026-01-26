@@ -2,14 +2,18 @@ import os
 import pandas as pd
 import json
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 import subprocess
+import zoneinfo
+
+# Define local timezone (CET/CEST - Europe/Brussels or Europe/Amsterdam)
+LOCAL_TIMEZONE = zoneinfo.ZoneInfo('Europe/Brussels')
 
 FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\bin\ffmpeg.exe"
 EXIFTOOL_BINARY_PATH = r"C:\Program Files\exiftool\exiftool.exe"  # You may need to install exiftool
 INPUT_CSV_FOLDER_PATH = "report"
 INPUT_CSV_FILE_NAME = "icloud_video_report.csv"
-PROCESSED_VIDEO_FOLDER_PATH = "data/processed_videos"
+PROCESSED_VIDEO_FOLDER_PATH = r"data\fix_times\2018\out"
 OUTPUT_CSV_FOLDER_PATH = "report"
 OUTPUT_CSV_FILE_NAME = "icloud_video_report_processed.csv"
 
@@ -108,51 +112,85 @@ def process_actions_from_csv(csv_path):
 
     df = pd.read_csv(csv_path, sep='@', dtype=str)
     df['derived_file'] = None  # Add new column for output path
+    df['processing_status'] = ''  # Add column to track processing errors
+
     for idx, row in df.iterrows():
         action = row.get('action')
         if action == 'skip':
             continue
 
-        creation_time = row.get('creation_time')
-        apple_metadata = json.loads(row['apple_metadata']) if row.get('apple_metadata') else None
-        val = row.get('audio_channels')
-        audio_channels = int(float(val)) if pd.notna(val) else 2
-        video_codec_needed = bool(int(float(row.get('video_codec_needed', '1'))))
-        audio_codec_needed = bool(int(float(row.get('audio_codec_needed', '1'))))
+        try:
+            creation_time = row.get('creation_time')
+            if 'apple_metadata' in row and pd.notna(row['apple_metadata']):
+                apple_metadata = json.loads(row['apple_metadata'])
+            else:
+                apple_metadata = None
+            val = row.get('audio_channels')
+            audio_channels = int(float(val)) if pd.notna(val) else 2
+            video_codec_needed = bool(int(float(row.get('video_codec_needed', '1'))))
+            audio_codec_needed = bool(int(float(row.get('audio_codec_needed', '1'))))
 
-        # Establish an output file path with a unique prefix from creation_time
-        prefix = "unknown_"
-        if creation_time and pd.notna(creation_time):
-            try:
-                dt = pd.to_datetime(creation_time)
-                prefix = dt.strftime('%Y%m%d_%H%M%S-')
-            except Exception:
-                try:
-                    dt = pd.to_datetime(creation_time[:19])
-                    prefix = dt.strftime('%Y%m%d_%H%M%S-')
-                except Exception:
-                    pass
-        file_path = row.get('file')
-        file_name = os.path.basename(file_path)
-        unique_file_name = f"{prefix}{file_name}"
-        out_path = os.path.join(PROCESSED_VIDEO_FOLDER_PATH, unique_file_name)
-        df.at[idx, 'derived_file'] = out_path  # Store output path in new column
-
-        if action == 'move':
-            shutil.copy2(file_path, out_path)
+            # Establish an output file path with a unique prefix from creation_time
+            prefix = "unknown_"
+            dt_local = None  # Store local datetime for use in mtime
             if creation_time and pd.notna(creation_time):
                 try:
+                    # Parse UTC datetime format: 2018-09-28T19:02:21.000Z
+                    dt_utc = datetime.strptime(creation_time.replace('Z', ''), '%Y-%m-%dT%H:%M:%S.%f')
+                    # Make it timezone-aware (UTC)
+                    dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                    # Convert to local CET/CEST timezone
+                    dt_local = dt_utc.astimezone(LOCAL_TIMEZONE)
+                    # Use local time for filename prefix
+                    prefix = dt_local.strftime('%Y%m%d_%H%M%S-')
+                except Exception as e:
+                    print(f"Warning: Could not parse creation_time '{creation_time}': {e}")
+                    prefix = "unknown_"
+            file_path = row.get('file')
+            file_name = os.path.basename(file_path)
+            # For convert actions, always use .mov extension for output
+            if action == 'convert':
+                base_name, _ = os.path.splitext(file_name)
+                unique_file_name = f"{prefix}{base_name}.mov"
+            else:
+                unique_file_name = f"{prefix}{file_name}"
+            out_path = os.path.join(PROCESSED_VIDEO_FOLDER_PATH, unique_file_name)
+            df.at[idx, 'derived_file'] = out_path  # Store output path in new column
+
+            # Check if output file already exists with size > 0
+            if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                df.at[idx, 'processing_status'] = 'SKIPPED: file already exists'
+                print(f"Skipping {file_path}: output file already exists at {out_path}")
+                continue
+
+            if action == 'move':
+                shutil.copy2(file_path, out_path)
+                # Set file mtime to local time (not UTC)
+                if dt_local:
                     try:
-                        dt = pd.to_datetime(creation_time)
-                    except Exception:
-                        dt = pd.to_datetime(creation_time[:19])
-                    mod_time = dt.timestamp()
-                    os.utime(out_path, (mod_time, mod_time))
-                except Exception:
-                    pass
-        elif action == 'convert':
-            convert_video(file_path, out_path, creation_time, video_codec_needed, audio_codec_needed, audio_channels, apple_metadata)
-        # skip and error do nothing
+                        mod_time = dt_local.timestamp()
+                        os.utime(out_path, (mod_time, mod_time))
+                    except Exception as e:
+                        print(f"Warning: Could not set mtime for {out_path}: {e}")
+                df.at[idx, 'processing_status'] = 'SUCCESS'
+            elif action == 'convert':
+                convert_video(file_path, out_path, creation_time, video_codec_needed, audio_codec_needed, audio_channels, apple_metadata)
+                # Set file mtime to local time (not UTC) after conversion
+                if dt_local:
+                    try:
+                        mod_time = dt_local.timestamp()
+                        os.utime(out_path, (mod_time, mod_time))
+                    except Exception as e:
+                        print(f"Warning: Could not set mtime for {out_path}: {e}")
+                df.at[idx, 'processing_status'] = 'SUCCESS'
+            # skip and error do nothing
+
+        except Exception as e:
+            # Catch any error for this file and log it
+            error_msg = f"ERROR: {type(e).__name__}: {str(e)}"
+            df.at[idx, 'processing_status'] = error_msg
+            print(f"Error processing {row.get('file')}: {error_msg}")
+            # Continue with next file
 
     return df
 
