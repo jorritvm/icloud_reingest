@@ -57,6 +57,7 @@ sequenceDiagram
     participant Archive as Archive
     participant Human as Human
     participant Staging as Staging
+    participant iPhone as iPhone
     participant iCloud as iCloud
 
     Archive ->> Human: evaluate_duplicates.py
@@ -71,7 +72,9 @@ sequenceDiagram
     Human ->> Human: inspect CSV
     Human ->> Staging: process_videoss.py
 
-    Staging ->> iCloud: Upload via photosync
+    Staging ->> iPhone: Upload via photosync
+    
+    iPhone ->> iCloud: Sync to iCloud
 
     Human ->> Human: inspect iCloud result
 
