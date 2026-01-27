@@ -125,18 +125,19 @@ from src.utils import should_skip_by_partial_match, extract_year_from_path
 
 ### CONFIGURATION ###
 # Starting directory for file crawl
-ROOT_VIDEO_FOLDER = r"data\fix_times\2018\in" #  r"D:\pictures\2018" #
+ROOT_VIDEO_FOLDER = r"D:\pictures\2024" # r"data\fix_times\2018\in"
 # File types to process (case-insensitive)
 ONLY_HANDLE_THESE_VIDEO_EXTENSIONS = ["mkv", "mp4", "mov"] # case insensitive
 # Keywords to exclude files (e.g., specific albums)
 SKIPLIST_PARTIAL_MATCH = ["GOEF", "Elia", "BBM", "Trash", "small"]
 # Path to ffmpeg installation for video analysis
-FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\bin\ffmpeg.exe"
+FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\5.1\bin\ffmpeg.exe"
 # Folder path for output CSV report
-OUTPUT_CSV_FOLDER_PATH = "report"
+OUTPUT_CSV_FOLDER_PATH = "report/2024"
 # CSV filename for evaluation report
 OUTPUT_CSV_FILE_NAME = "icloud_video_report.csv"
-
+# define CSV separator symbol
+CSV_SEPARATOR=";"
 
 # Pandas display settings
 pd.set_option('display.max_columns', None)
@@ -368,4 +369,4 @@ if __name__ == "__main__":
     # Ensure output folder exists
     os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
     OUTPUT_CSV_FILE_PATH = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
-    df.to_csv(OUTPUT_CSV_FILE_PATH, sep='@', index=False)
+    df.to_csv(OUTPUT_CSV_FILE_PATH, sep=CSV_SEPARATOR, index=False)

@@ -9,14 +9,14 @@ import zoneinfo
 # Define local timezone (CET/CEST - Europe/Brussels or Europe/Amsterdam)
 LOCAL_TIMEZONE = zoneinfo.ZoneInfo('Europe/Brussels')
 
-FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\bin\ffmpeg.exe"
+FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\5.1\bin\ffmpeg.exe"
 EXIFTOOL_BINARY_PATH = r"C:\Program Files\exiftool\exiftool.exe"  # You may need to install exiftool
-INPUT_CSV_FOLDER_PATH = "report"
+INPUT_CSV_FOLDER_PATH = "report/2021"
 INPUT_CSV_FILE_NAME = "icloud_video_report.csv"
-PROCESSED_VIDEO_FOLDER_PATH = r"data\fix_times\2018\out"
+PROCESSED_VIDEO_FOLDER_PATH = r"data\processed_videos\2021"c:\Program Files\ffmpeg\5.1\bin\ffmpeg.exe" -y -i "D:\icloud_reingest\data\processed_videos\IMG_3460.MOV" -vf "zscale=transfer=linear:primaries=bt709:matrix=bt709,tonemap=tonemap=hable:desat=0.5,zscale=transfer=bt709" -c:v libx265 -pix_fmt yuv420p -color_primaries bt709 -color_trc bt709 -colorspace bt709 -c:a aac -b:a 128k "D:\icloud_reingest\data\processed_videos\IMG_3460_SDR.MOV""
 OUTPUT_CSV_FOLDER_PATH = "report"
 OUTPUT_CSV_FILE_NAME = "icloud_video_report_processed.csv"
-
+CSV_SEPARATOR=";"
 
 def convert_video(src, dst, creation_time, video_codec_needed, audio_codec_needed, audio_channels, apple_metadata=None):
     cmd = [FFMPEG_BINARY_PATH, '-y', '-i', src]
@@ -110,7 +110,7 @@ def process_actions_from_csv(csv_path):
     # ensure output folder exists
     os.makedirs(PROCESSED_VIDEO_FOLDER_PATH, exist_ok=True)
 
-    df = pd.read_csv(csv_path, sep='@', dtype=str)
+    df = pd.read_csv(csv_path, sep=CSV_SEPARATOR, dtype=str)
     df['derived_file'] = None  # Add new column for output path
     df['processing_status'] = ''  # Add column to track processing errors
 
@@ -201,5 +201,5 @@ if __name__ == '__main__':
     # Ensure output folder exists
     os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
     output_csv_path = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
-    dfp.to_csv(output_csv_path, sep='@', index=False)
+    dfp.to_csv(output_csv_path, sep=CSV_SEPARATOR, index=False)
     print("Done.")

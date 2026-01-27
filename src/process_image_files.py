@@ -16,15 +16,16 @@ from datetime import datetime
 # Configuration
 INPUT_CSV_FOLDER_PATH = "report"
 INPUT_CSV_FILE_NAME = "icloud_image_report.csv"
-PROCESSED_IMAGE_FOLDER_PATH = "data/processed_images/2018"
+PROCESSED_IMAGE_FOLDER_PATH = "data/processed_images/2019"
 OUTPUT_CSV_FOLDER_PATH = "report"
 OUTPUT_CSV_FILE_NAME = "icloud_image_report_processed.csv"
+CSV_SEPARATOR=";"
 
 # Read the CSV
 input_csv_path = os.path.join(INPUT_CSV_FOLDER_PATH, INPUT_CSV_FILE_NAME)
 if not os.path.exists(input_csv_path):
     raise FileNotFoundError(f"Input CSV not found: {input_csv_path}")
-df = pd.read_csv(input_csv_path, sep='@', names=['file', 'datetime', 'action', 'reason'], dtype=str, header=0)
+df = pd.read_csv(input_csv_path, sep=CSV_SEPARATOR, names=['file', 'datetime', 'action', 'reason'], dtype=str, header=0)
 
 # Track processed files
 df['processed'] = ''
@@ -62,5 +63,5 @@ for idx, row in df.iterrows():
 # Save the updated DataFrame
 os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
 output_csv_path = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
-df.to_csv(output_csv_path, sep='@', index=False)
+df.to_csv(output_csv_path, sep=CSV_SEPARATOR, index=False)
 print(f"Done. Results written to {output_csv_path}")

@@ -25,12 +25,13 @@ INPUT_CSV_FOLDER_PATH = "report"
 INPUT_CSV_FILE_NAME = "duplicate_image_report.csv"
 OUTPUT_CSV_FOLDER_PATH = "report"
 OUTPUT_CSV_FILE_NAME = "duplicate_image_report_processed.csv"
+CSV_SEPARATOR=";"
 
 # Read the CSV
 input_csv_path = os.path.join(INPUT_CSV_FOLDER_PATH, INPUT_CSV_FILE_NAME)
 if not os.path.exists(input_csv_path):
     raise FileNotFoundError(f"Input CSV not found: {input_csv_path}")
-df = pd.read_csv(input_csv_path, sep='@', dtype=str)
+df = pd.read_csv(input_csv_path, sep=CSV_SEPARATOR, dtype=str)
 if 'removed' not in df.columns:
     df['removed'] = ''
 
@@ -105,7 +106,7 @@ for idx, row in pairs.iterrows():
 # Save the updated DataFrame
 os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
 output_csv_path = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
-df.to_csv(output_csv_path, sep='@', index=False)
+df.to_csv(output_csv_path, sep=CSV_SEPARATOR, index=False)
 print(f"Done. Results written to {output_csv_path}")
 # Print total space saved in kilobytes
 print(f"Total space saved: {round(removed_bytes / 1024, 2)} KB")

@@ -30,6 +30,8 @@ PHASH_SIZE = 64
 OUTPUT_CSV_FOLDER_PATH = "report"
 # Output CSV file name
 OUTPUT_CSV_FILE_NAME = "duplicate_image_report.csv"
+# define CSV separator symbol
+CSV_SEPARATOR=";"
 
 # Ensure pandas prints all columns and rows
 pd.set_option('display.max_columns', None)
@@ -108,5 +110,5 @@ if __name__ == "__main__":
     # Ensure output folder exists
     os.makedirs(OUTPUT_CSV_FOLDER_PATH, exist_ok=True)
     output_csv_path = os.path.join(OUTPUT_CSV_FOLDER_PATH, OUTPUT_CSV_FILE_NAME)
-    df.to_csv(output_csv_path, sep='@', index=False)
+    df.to_csv(output_csv_path, sep=CSV_SEPARATOR, index=False)
     print(f"Done. Results written to {output_csv_path}")
