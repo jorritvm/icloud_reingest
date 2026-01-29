@@ -46,6 +46,8 @@ When the next reingestion is done, the transition date is moved forward in time.
 |<-- Curate                   -->|<-- Raw media -->|
 ```
 
+You can also choose to overwrite your original archived videos with the newly converted versions. These converted files are guaranteed to be iPhone and iCloud compatible, using the hvc1 (HEVC) video codec and AAC audio codec in a MOV container. This not only ensures seamless playback and compatibility across Apple devices, but also often results in significantly smaller file sizes compared to the originals, especially when converting from older formats like x264 or PCM audio. The tool provides a robust workflow for safely replacing your archived videos, including optional failsafe backups of the originals before replacement, so you can benefit from modern compression and compatibility without risk of data loss.
+
 
 ## Critical Notes
 * Media are reingested with their original creation dates so they appear in the correct chronological order in iCloud.
