@@ -137,6 +137,8 @@ OUTPUT_CSV_FOLDER_PATH = "report/2024"
 OUTPUT_CSV_FILE_NAME = "icloud_video_report.csv"
 # define CSV separator symbol
 CSV_SEPARATOR=";"
+# Minimum allowed year for video creation_time
+MIN_YEAR = 2000
 
 # Pandas display settings
 pd.set_option('display.max_columns', None)
@@ -188,7 +190,7 @@ def get_file_mtime_as_iso(file_path):
     """Get file modification time as ISO 8601 string in UTC"""
     if file_path and os.path.exists(file_path):
         mod_time = os.path.getmtime(file_path)
-        dt = datetime.utcfromtimestamp(mod_time)
+        dt = datetime.fromtimestamp(mod_time, timezone.utc)
         return dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
     return None
 
@@ -262,18 +264,16 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                 continue
 
             # Get apple metadata early so it's always defined
+            apple_metadata = extract_apple_metadata(info)
             creation_time = get_creation_time_from_metadata(info)
             if not creation_time:
-                # print("---- I DID NOT FIND METADATA FOR FILE: " + file_path)
                 path_year = extract_year_from_path(file_path)
                 if path_year:
                     mod_time = os.path.getmtime(file_path)
                     mod_year = datetime.fromtimestamp(mod_time).year
                     if str(mod_year) == path_year:
-                        # Year matches, use file mtime as creation time and continue with codec checks
                         creation_time = get_file_mtime_as_iso(file_path)
                     else:
-                        # Year mismatch - skip this file
                         entry['action'] = 'skip'
                         entry['reason'] = 'no metadata creation time and and file modified time mismatch'
                         continue
@@ -284,6 +284,13 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
 
             # Normalize the datetime to UTC format (handles both metadata and mtime)
             creation_time = normalize_datetime_to_utc(creation_time)
+
+            # Skip if the creation time is way too old
+            year_str = creation_time[:4] if creation_time and len(creation_time) >= 4 else None
+            if year_str and year_str.isdigit() and int(year_str) < MIN_YEAR:
+                entry['action'] = 'skip'
+                entry['reason'] = f'creation_time before {MIN_YEAR}'
+                continue
 
             # Determine if re-encode is needed, and for which parts exactly
             video_codec_needed = True
