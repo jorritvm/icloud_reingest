@@ -14,10 +14,10 @@ import shutil
 from datetime import datetime
 
 # Configuration
-INPUT_CSV_FOLDER_PATH = "report"
+INPUT_CSV_FOLDER_PATH = "report/2024"
 INPUT_CSV_FILE_NAME = "icloud_image_report.csv"
-PROCESSED_IMAGE_FOLDER_PATH = "data/processed_images/2019"
-OUTPUT_CSV_FOLDER_PATH = "report"
+PROCESSED_IMAGE_FOLDER_PATH = "data/processed_images/2024"
+OUTPUT_CSV_FOLDER_PATH = "report/2024"
 OUTPUT_CSV_FILE_NAME = "icloud_image_report_processed.csv"
 CSV_SEPARATOR=";"
 

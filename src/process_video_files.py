@@ -11,10 +11,10 @@ LOCAL_TIMEZONE = zoneinfo.ZoneInfo('Europe/Brussels')
 
 FFMPEG_BINARY_PATH = r"C:\Program Files\ffmpeg\5.1\bin\ffmpeg.exe"
 EXIFTOOL_BINARY_PATH = r"C:\Program Files\exiftool\exiftool.exe"  # You may need to install exiftool
-INPUT_CSV_FOLDER_PATH = "report/2021"
+INPUT_CSV_FOLDER_PATH = "report/2024"
 INPUT_CSV_FILE_NAME = "icloud_video_report.csv"
-PROCESSED_VIDEO_FOLDER_PATH = r"data\processed_videos\2021"c:\Program Files\ffmpeg\5.1\bin\ffmpeg.exe" -y -i "D:\icloud_reingest\data\processed_videos\IMG_3460.MOV" -vf "zscale=transfer=linear:primaries=bt709:matrix=bt709,tonemap=tonemap=hable:desat=0.5,zscale=transfer=bt709" -c:v libx265 -pix_fmt yuv420p -color_primaries bt709 -color_trc bt709 -colorspace bt709 -c:a aac -b:a 128k "D:\icloud_reingest\data\processed_videos\IMG_3460_SDR.MOV""
-OUTPUT_CSV_FOLDER_PATH = "report"
+PROCESSED_VIDEO_FOLDER_PATH = r"data\processed_videos\2024"
+OUTPUT_CSV_FOLDER_PATH = "report/2024"
 OUTPUT_CSV_FILE_NAME = "icloud_video_report_processed.csv"
 CSV_SEPARATOR=";"
 
@@ -29,9 +29,6 @@ def convert_video(src, dst, creation_time, video_codec_needed, audio_codec_neede
             '-pix_fmt', 'yuv420p',
             '-r', '30',
             '-x265-params', 'keyint=60:min-keyint=60:scenecut=0:bframes=4:open-gop=0:repeat-headers=1',
-            '-color_primaries', 'bt709',
-            '-color_trc', 'bt709',
-            '-colorspace', 'bt709',
         ]
     else:
         cmd += ['-c:v', 'copy']

@@ -29,7 +29,6 @@ Logic Flow:
       - Video has creation date metadata BUT needs format changes:
         * Container not MOV → remux to MOV
         * Video not hvc1 HEVC → re-encode to libx265 with hvc1 tag
-        * Video is HDR → convert to SDR (Rec.709, yuv420p)
         * Audio not AAC → re-encode to AAC
 
 3. Video Stream Analysis:
@@ -262,10 +261,10 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                 entry['reason'] = 'ffprobe failed'
                 continue
 
-            # Try to get creation time from metadata first, if unavailable, check file mtime against year in path
+            # Get apple metadata early so it's always defined
             creation_time = get_creation_time_from_metadata(info)
             if not creation_time:
-                print("---- I DID NOT FIND METADATA FOR FILE: " + file_path)
+                # print("---- I DID NOT FIND METADATA FOR FILE: " + file_path)
                 path_year = extract_year_from_path(file_path)
                 if path_year:
                     mod_time = os.path.getmtime(file_path)
@@ -291,25 +290,17 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
             audio_codec_needed = True
             container_needed = ext != 'mov'
             audio_channels = 2
-            hdr_to_sdr_needed = False
             video_reason = None
             audio_reason = None
-            hdr_reason = None
             for stream in info.get('streams', []):
                 if stream.get('codec_type') == 'video':
                     # Check codec/tag
                     is_hvc1 = stream.get('codec_name') == 'hevc' and stream.get('codec_tag_string', '').lower() == 'hvc1'
-                    # Check HDR/SDR
-                    is_hdr = is_hdr_stream(stream)
-                    if is_hvc1 and not is_hdr:
+                    if is_hvc1:
                         video_codec_needed = False
                     else:
                         video_codec_needed = True
-                        if not is_hvc1:
-                            video_reason = 'video codec'
-                        if is_hdr:
-                            hdr_to_sdr_needed = True
-                            hdr_reason = 'HDR to SDR'
+                        video_reason = 'video codec'
                 if stream.get('codec_type') == 'audio':
                     if stream.get('codec_name') == 'aac':
                         audio_codec_needed = False
@@ -321,8 +312,8 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
             else:
                 container_reason = 'container'
 
-            # If everything is compatible (video, audio, SDR, MOV), just mark as move
-            if not video_codec_needed and not audio_codec_needed and not container_needed and not hdr_to_sdr_needed:
+            # If everything is compatible (video, audio, MOV), just mark as move
+            if not video_codec_needed and not audio_codec_needed and not container_needed:
                 entry['action'] = 'move'
                 entry['reason'] = 'fully compatible already'
                 entry['creation_time'] = creation_time
@@ -337,8 +328,6 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
             if video_codec_needed:
                 if video_reason:
                     reasons.append(video_reason)
-            if hdr_to_sdr_needed:
-                reasons.append(hdr_reason)
             if audio_codec_needed:
                 if audio_reason:
                     reasons.append(audio_reason)
@@ -347,9 +336,9 @@ def crawl_and_evaluate(root_folder_path, video_extensions, skiplist):
                     reasons.append(container_reason)
             reason_str = 'convert: ' + '+'.join(reasons) if reasons else 'convert'
 
+
             # Get apple metadata
             apple_metadata = extract_apple_metadata(info)
-
             entry['action'] = 'convert'
             entry['reason'] = reason_str
             entry['creation_time'] = creation_time
