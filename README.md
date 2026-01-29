@@ -137,8 +137,7 @@ If you have converted media (e.g. new video files), it could be usefull to repla
 In the case of a x264 --> x265 conversion, this will save file size. 
 Module `process_video_files.py` will have generated a csv report with the mapping between original and converted files.
 You can use the `replace_archived_media.py` script to do the replacement in iCloud
-1. Add a column 'overwrite' to the csv report with value 1 for original files to replace with the converted ones.
-2. Run the script
+1. Run the script
 ```python
 # configure the python file first!
 python src\replace_archived_media.py
